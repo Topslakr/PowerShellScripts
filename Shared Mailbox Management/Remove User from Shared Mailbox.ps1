@@ -1,6 +1,6 @@
 #Created 9.14.2020
 
-Connect-ExchangeOnline -UserPrincipalName rwoulfe@cokenortheast.com
+Connect-ExchangeOnline
 clear
 
 #Define Temp Files for Reporting
