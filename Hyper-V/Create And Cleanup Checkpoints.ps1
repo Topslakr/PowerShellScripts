@@ -25,7 +25,10 @@ $CurrentVM = $vm.Name.ToString()
 #Print which VM is being investigated
 Write-Host "Processing $CurrentVM"
 
-#Remove any stale checkpoints, ignoring the two most recent checkpoints
+#List and remove any stale checkpoints, ignoring the two most recent checkpoints
+$StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} 
+Write-Host = "Checkpoints to be Deleted:"
+Write-Host = "StaleSnaps"
 get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} | Remove-VMSnapshot
 #Give the server a few moments to crunch the numnbers.
 Sleep 5
@@ -34,6 +37,7 @@ Sleep 5
 Set-VM -Name $CurrentVM -CheckpointType Production
 
 #Take the snapshot.
+Write-Host "Creating $SnapName for $CurrentVM"
 Get-VM -Name $CurrentVM | Checkpoint-VM -SnapshotName $SnapName
 #A few more moments to crunch those numbers.
 Sleep 5
