@@ -28,7 +28,7 @@ Write-Host "Processing $CurrentVM"
 #List and remove any stale checkpoints, ignoring the two most recent checkpoints
 $StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} 
 Write-Host = "Checkpoints to be Deleted:"
-Write-Host = "StaleSnaps"
+Write-Host = "$StaleSnaps"
 get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} | Remove-VMSnapshot
 #Give the server a few moments to crunch the numnbers.
 Sleep 5
