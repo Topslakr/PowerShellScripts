@@ -42,3 +42,12 @@ Get-VM -Name $CurrentVM | Checkpoint-VM -SnapshotName $SnapName
 #A few more moments to crunch those numbers.
 Sleep 5
 }
+
+#Report on Disk Space Used by Checkpoint Diff Disks
+#Find Locations of VM Disks
+$VMDisk = Get-VMHardDiskDrive -VMName * | Select-Object -Last 1 | Select Path | Split-Path
+#Calculate Disk space used, in Gb
+$SpaceUsed = [Math]::Round(((Get-ChildItem -Path $VMDisk | Where Name -CLike "*avhdx" | Measure-Object -Property Length -Sum).Sum / 1Gb))
+#Report Space Used in Log
+Write-Host "Disk Space Used by Checkpoint Data"
+Write-Host "$SpaceUsed Gb"
