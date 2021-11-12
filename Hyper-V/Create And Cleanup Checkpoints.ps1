@@ -16,7 +16,7 @@ $SnapName = "Recovery Checkpoint $TimeStamp"
 #Set the age of Snapshots to keep.
 #Because  the checkpoints are deleted before new ones are made, this number should be one LOWER than you'd like to keep.
 #Using -3 will actually keep 4 checkpoints.
-$filterDate = (Get-Date).AddDays(-3)
+$filterDate = (Get-Date).AddDays(-6)
 
 #Now we do the work
 Foreach($VM in $VMs){
