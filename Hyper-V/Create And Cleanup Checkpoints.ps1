@@ -1,4 +1,5 @@
 #RW - 9.29.2021
+#RW - 12.8.2021 - Updating script to dynamically keep more or less snaps based on free space
 #Run this script on a Hyper-V Host to checkpoint each VM. The script will also purge any snapshots older than X number of days.
 #The process that purges old checkpoints will ignore the two most recent checkpoints to prevent the system from purging all checkpoints even if the checkpoint creation fails.
 #The script should be run via a scheduled task, or other automation triggering platform.
@@ -13,10 +14,34 @@ $VMs = Get-VM
 $TimeStamp = Get-Date -Format "MM/dd/yyyy HH:mm"
 $SnapName = "Recovery Checkpoint $TimeStamp"
 
-#Set the age of Snapshots to keep.
-#Because  the checkpoints are deleted before new ones are made, this number should be one LOWER than you'd like to keep.
-#Using -3 will actually keep 4 checkpoints.
-$filterDate = (Get-Date).AddDays(-6)
+#Find which Drive letter hold the VM Disks
+$DiskSource = Get-VMHardDiskDrive -VMName * | Select-Object -Last 1 | Select Path
+$DiskLetter = $DiskSource.Path[0]
+
+#Find out how many bytes of free space are available on VM Disk
+$Free = Get-Volume $DiskLetter | Select SizeRemaining | Format-Table -HideTableHeaders | Out-String
+$Spacefree = (Measure-Object -InputObject $Free -Sum).Sum
+
+#Calcualte how many Snaps to keep, based on Free Space
+If ( $SpaceFree -ge 50000000000 )
+{
+    Write-Output "More than 500GiB Free"
+    Write-Output "Keeping 8 Days of Snaps"
+    $SnapCount = 7
+}
+elseif ($Spacefree -gt  25000000000 -lt 50000000000)
+{
+    Write-Output "More than 250GiB Free"
+    Write-Output "Keeping 5 Days of Snaps"
+    $SnapCount = 4
+}
+else
+{
+    Write-Output "Less than 250GB Free"
+    Write-Output "Keeping 3 Days of Snaps"
+    $SnapCount = 2
+}
+
 
 #Now we do the work
 Foreach($VM in $VMs){
@@ -29,7 +54,7 @@ Write-Host "Processing $CurrentVM"
 $StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} 
 Write-Host = "Checkpoints to be Deleted:"
 Write-Host = "$StaleSnaps"
-get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} | Remove-VMSnapshot
+get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount | Where-Object {$_.CreationTime -LE $filterDate} | Remove-VMSnapshot
 #Give the server a few moments to crunch the numnbers.
 Sleep 5
 
