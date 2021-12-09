@@ -1,7 +1,6 @@
 #RW - 9.29.2021
 #RW - 12.8.2021 - Updating script to dynamically keep more or less snaps based on free space
-#Run this script on a Hyper-V Host to checkpoint each VM. The script will also purge any snapshots older than X number of days.
-#The process that purges old checkpoints will ignore the two most recent checkpoints to prevent the system from purging all checkpoints even if the checkpoint creation fails.
+#Run this script on a Hyper-V Host to checkpoint each VM. The script will also purge any snapshots beyond limits set based on disk space.
 #The script should be run via a scheduled task, or other automation triggering platform.
 
 #Create Variable of Available VMs
@@ -20,16 +19,18 @@ $DiskLetter = $DiskSource.Path[0]
 
 #Find out how many bytes of free space are available on VM Disk
 $Free = Get-Volume $DiskLetter | Select SizeRemaining | Format-Table -HideTableHeaders | Out-String
-$Spacefree = (Measure-Object -InputObject $Free -Sum).Sum
+$Spacefree = [Math]::Round((Measure-Object -InputObject $Free -Sum).Sum / 1GB)
+
+Write-Host "Space Free: " $Spacefree "GB"
 
 #Calcualte how many Snaps to keep, based on Free Space
-If ( $SpaceFree -ge 50000000000 )
+If ( $SpaceFree -ge 500 )
 {
     Write-Output "More than 500GiB Free"
     Write-Output "Keeping 8 Days of Snaps"
     $SnapCount = 7
 }
-elseif ($Spacefree -gt  25000000000 -lt 50000000000)
+elseif ($Spacefree -gt 250 )
 {
     Write-Output "More than 250GiB Free"
     Write-Output "Keeping 5 Days of Snaps"
@@ -42,6 +43,7 @@ else
     $SnapCount = 2
 }
 
+$SnapCount
 
 #Now we do the work
 Foreach($VM in $VMs){
@@ -51,12 +53,12 @@ $CurrentVM = $vm.Name.ToString()
 Write-Host "Processing $CurrentVM"
 
 #List and remove any stale checkpoints, ignoring the two most recent checkpoints
-$StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2 | Where-Object {$_.CreationTime -LE $filterDate} 
+$StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2
 Write-Host = "Checkpoints to be Deleted:"
 Write-Host = "$StaleSnaps"
-get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount | Where-Object {$_.CreationTime -LE $filterDate} | Remove-VMSnapshot
+get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount | Remove-VMSnapshot
 #Give the server a few moments to crunch the numnbers.
-Sleep 5
+Sleep 15
 
 #Set the type of checkpoint to take. (Standard,Production, or ProductionOnly)
 Set-VM -Name $CurrentVM -CheckpointType Production
@@ -65,7 +67,7 @@ Set-VM -Name $CurrentVM -CheckpointType Production
 Write-Host "Creating $SnapName for $CurrentVM"
 Get-VM -Name $CurrentVM | Checkpoint-VM -SnapshotName $SnapName
 #A few more moments to crunch those numbers.
-Sleep 5
+Sleep 10
 }
 
 #Report on Disk Space Used by Checkpoint Diff Disks
