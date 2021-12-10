@@ -43,8 +43,6 @@ else
     $SnapCount = 2
 }
 
-$SnapCount
-
 #Now we do the work
 Foreach($VM in $VMs){
 $CurrentVM = $vm.Name.ToString()
