@@ -51,7 +51,7 @@ $CurrentVM = $vm.Name.ToString()
 Write-Host "Processing $CurrentVM"
 
 #List and remove any stale checkpoints, ignoring the two most recent checkpoints
-$StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast 2
+$StaleSnaps = get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount
 Write-Host = "Checkpoints to be Deleted:"
 Write-Host = "$StaleSnaps"
 get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount | Remove-VMSnapshot
