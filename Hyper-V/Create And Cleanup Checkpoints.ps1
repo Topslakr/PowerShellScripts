@@ -44,7 +44,7 @@ else
     Foreach($VM in $VMs){
         $CurrentVM = $vm.Name.ToString()
         Write-Host "Cleaning Up $CurrentVM"
-        get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount | Remove-VMSnapshot
+        get-vm -Name $CurrentVM | Get-VMSnapshot | Remove-VMSnapshot
         sleep 15
         }
     Exit
