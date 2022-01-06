@@ -1,5 +1,6 @@
 #RW - 9.29.2021
 #RW - 12.8.2021 - Updating script to dynamically keep more or less snaps based on free space
+#RW - 01.06.2020 - Take Less Risk. Don't snap on less than 250GB of freespace, and remove any current snaps.
 #Run this script on a Hyper-V Host to checkpoint each VM. The script will also purge any snapshots beyond limits set based on disk space.
 #The script should be run via a scheduled task, or other automation triggering platform.
 
@@ -39,8 +40,14 @@ elseif ($Spacefree -gt 250 )
 else
 {
     Write-Output "Less than 250GB Free"
-    Write-Output "Keeping 3 Days of Snaps"
-    $SnapCount = 2
+    Write-Output "Create No Checkpoints. Delete All Checkpoints and exit"
+    Foreach($VM in $VMs){
+        $CurrentVM = $vm.Name.ToString()
+        Write-Host "Cleaning Up $CurrentVM"
+        get-vm -Name $CurrentVM | Get-VMSnapshot | Select -skiplast $SnapCount | Remove-VMSnapshot
+        sleep 15
+        }
+    Exit
 }
 
 #Now we do the work
