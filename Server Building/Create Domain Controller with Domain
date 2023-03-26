@@ -1,0 +1,39 @@
+#RW - 3.17.2022 - Add AD tools, and setup domain
+#This will create a new domain, on a new domain controller. This is for bootstrapping a new group of servers
+
+#Prompt User for Domain name, and NetBIOS name of the domain we will create
+$DomainName = Read-Host "What should the full Domain be called? (i.e. mydomain.local)"
+$NetBios = Read-Host "What should the NetBIOS name be? (i.e. mydomain)"
+
+#Generate Random Recovery Mode Password
+#Sourced from https://arminreiter.com/2021/07/3-ways-to-generate-passwords-in-powershell/
+function Get-RandomPassword {
+    param (
+        [Parameter(Mandatory)]
+        [int] $length,
+        [int] $amountOfNonAlphanumeric = 1
+    )
+    Add-Type -AssemblyName 'System.Web'
+    return [System.Web.Security.Membership]::GeneratePassword($length, $amountOfNonAlphanumeric)
+}
+
+#Create Varaibles
+#Generate Random, 16 character password
+$ADRMPassword=Get-RandomPassword 16
+#Convert Password to Secure string for insertion in command
+$Secure_String_Pwd = ConvertTo-SecureString $ADRMPassword -AsPlainText -Force
+
+Write-Host !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Write-Host !!!         Save this password in a safe place.         !!!
+Write-Host !!! If you need to do any domain recovery in the future !!!
+Write-Host !!!             you'll be glad you have it!             !!!
+           !!!                                                     !!!
+Write-Host !!! Recovery Mode Password: $ADRMPassword            !!!
+Write-Host !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Write-Host Installing AD-Domain-Services
+Install-WindowsFeature -Name AD-Domain-Services -IncludeManagementTools
+
+Write-Host Domain Tooling Installed. Creating Domain.
+Import-Module ADDSDeployment
+Install-ADDSForest -SafeModeAdministratorPassword $Secure_String_Pwd -CreateDnsDelegation:$false -DatabasePath "C:\Windows\NTDS" -DomainMode "WinThreshold" -DomainName $DomainName -DomainNetbiosName $NetBios -ForestMode "WinThreshold" -InstallDns:$true -LogPath "C:\Windows\NTDS" -NoRebootOnCompletion:$false -SysvolPath "C:\Windows\SYSVOL" -Force:$true
