@@ -1,0 +1,37 @@
+#RW 3.26.2023 - Setup NPS Server on Domain joined Windows Server.
+# Create an AD group called 'VPN Users' that are
+
+#Prompt user for the IP address of the device that will be requesting RADIUS auth.
+#This could be anything, really, but I wrote this script as a way to setup RADIUS auth
+#For a VPN server running on a Firewall.
+$Firewall = Read-Host "Enter the Internal IP Address of the Router"
+
+#Generate Random Recovery Mode Password
+#Sourced from https://arminreiter.com/2021/07/3-ways-to-generate-passwords-in-powershell/
+function Get-RandomPassword {
+    param (
+        [Parameter(Mandatory)]
+        [int] $length,
+        [int] $amountOfNonAlphanumeric = 1
+    )
+    Add-Type -AssemblyName 'System.Web'
+    return [System.Web.Security.Membership]::GeneratePassword($length, $amountOfNonAlphanumeric)
+}
+
+Write-Host Generate PSK for RADIUS Client
+$RADIUSPSK=Get-RandomPassword 48
+Write-Host The below PSK will be needed on the RADIUS requesting machine
+Write-Host PSK: $RADIUSPSK
+
+Write-Host Installing NPS Server Role
+Install-WindowsFeature -Name NPAS -IncludeAllSubFeature -IncludeManagementTools
+
+Write-Host Creating NPS Client for the RADIUS Enabled Firewall
+New-NpsRadiusClient -Address $Firewall -Name "Firewall" -SharedSecret $RADIUSPSK
+
+Write-Host Create VPN Users Group for granting access to Domain Users
+New-ADGroup -Name "VPN-Users" -SamAccountName vpnusers -GroupCategory Security -GroupScope Global -DisplayName "RADIUS VPN Users" -Description "Users Allowed to access the VPN"
+$VPNSID = (Get-ADGroup -Identity vpnusers).SID
+
+Write-Host Setup NPS Policy to allow members of VPN Users Group
+netsh nps add np name = "VPN Users" state = "enable" processingorder = "1" policysource = "0" conditionid = "0x1fb5" conditiondata = $VPNSID profileid = "0x1005" profiledata = "FALSE" profileid = "0x100f" profiledata = "TRUE" profileid = "0x1009" profiledata = "0x3" profiledata = "0x9" profiledata = "0x4" profiledata = "0xa" profileid = "0x7" profiledata = "0x1" profileid = "0x6" profiledata = "0x2"
