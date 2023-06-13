@@ -1,12 +1,11 @@
 #RW 3.26.2023 - Setup NPS Server on Domain joined Windows Server.
-# Create an AD group called 'VPN Users' that are
 
 #Prompt user for the IP address of the device that will be requesting RADIUS auth.
 #This could be anything, really, but I wrote this script as a way to setup RADIUS auth
 #For a VPN server running on a Firewall.
 $Firewall = Read-Host "Enter the Internal IP Address of the Router"
 
-#Generate Random Recovery Mode Password
+#Generate Random Password
 #Sourced from https://arminreiter.com/2021/07/3-ways-to-generate-passwords-in-powershell/
 function Get-RandomPassword {
     param (
